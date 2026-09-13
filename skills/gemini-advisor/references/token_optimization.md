@@ -56,3 +56,23 @@ Spawning subagents has a baseline coordination overhead (~500 tokens). For tasks
 
 ### 4. Flash-Lite for Repetitive Generation
 For purely mechanical code generation tasks (e.g., generating 20 mock data fixtures, converting JSON schemas to TypeScript interfaces, or generating boilerplate CRUD routes), invoke the builder with `Model: "flash_lite"`.
+
+---
+
+## 4. Using the Token Counter Tool
+
+Gemini Advisor includes an integrated token counter (`scripts/token_counter.sh`) to measure and verify token reduction in practice:
+
+```bash
+# Compare Monolithic vs Triad ROI
+bash scripts/token_counter.sh --compare
+
+# Estimate tokens for a file before passing it to an agent
+bash scripts/token_counter.sh --file path/to/source.py
+
+# Check how many tokens a diff will consume during audit
+bash scripts/token_counter.sh --diff
+
+# Audit an actual conversation transcript to inspect token distributions
+bash scripts/token_counter.sh --transcript ~/.gemini/antigravity/transcript.jsonl
+```

@@ -69,6 +69,7 @@ SCRIPTS=(
     "scripts/diff_summary.sh"
     "scripts/install.sh"
     "scripts/verify.sh"
+    "scripts/token_counter.sh"
 )
 
 for scr in "${SCRIPTS[@]}"; do
@@ -84,6 +85,20 @@ for scr in "${SCRIPTS[@]}"; do
         ERRORS=$((ERRORS + 1))
     fi
 done
+
+# 5. Run Token Counter Self-Tests
+echo "5. Running token counter verification tests..."
+if [ -f "$REPO_ROOT/scripts/token_counter.py" ]; then
+    if python3 "$REPO_ROOT/scripts/token_counter.py" --test; then
+        echo "  ✓ Token counter self-tests passed"
+    else
+        echo "  ✗ Token counter self-tests FAILED"
+        ERRORS=$((ERRORS + 1))
+    fi
+else
+    echo "  ✗ Missing scripts/token_counter.py"
+    ERRORS=$((ERRORS + 1))
+fi
 
 echo ""
 if [ "$ERRORS" -eq 0 ]; then

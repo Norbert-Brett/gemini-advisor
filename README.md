@@ -106,6 +106,31 @@ risk: User authentication handles password hashing, JWT tokens, and DB sessions.
 allocation: Planner (Pro) -> Builder (Flash) -> Reviewer (Fresh Pro)
 ```
 
+### 3. Measuring Real Tokens & Cost Savings
+
+Gemini Advisor includes a real token counter and economic estimator calibrated for Gemini's 256k vocabulary:
+
+```bash
+# Run automated token counter self-tests
+bash scripts/token_counter.sh --test
+
+# Compare Monolithic Pro vs Gemini Advisor Triad cost & token savings
+bash scripts/token_counter.sh --compare
+
+# Count tokens in a file or directory
+bash scripts/token_counter.sh --file skills/gemini-advisor/SKILL.md
+bash scripts/token_counter.sh --dir skills/
+
+# Count tokens in an active git diff
+bash scripts/token_counter.sh --diff
+
+# Measure real token usage in an Antigravity transcript
+bash scripts/token_counter.sh --transcript path/to/transcript.jsonl
+
+# Count tokens from piped text
+echo "function hello() { return 'world'; }" | bash scripts/token_counter.sh
+```
+
 ---
 
 ## Repository Structure
@@ -128,8 +153,10 @@ allocation: Planner (Pro) -> Builder (Flash) -> Reviewer (Fresh Pro)
 │           ├── review_protocol.md           # 4-pillar audit rubric & verdicts
 │           └── token_optimization.md        # Token saving strategies & benchmarks
 ├── scripts/
+│   ├── token_counter.py                     # Real token counter & pricing estimator
+│   ├── token_counter.sh                     # Convenient shell wrapper for token counting
 │   ├── install.sh                           # One-step installer (--global or --workspace)
-│   ├── verify.sh                            # Plugin test & validation suite
+│   ├── verify.sh                            # Plugin test & validation suite (includes self-tests)
 │   └── diff_summary.sh                      # Token-efficient diff & status generator
 ├── LICENSE                                  # MIT License
 └── README.md                                # This document
