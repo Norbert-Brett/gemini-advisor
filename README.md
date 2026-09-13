@@ -9,9 +9,12 @@ Multi-model capability routing and selective task orchestration for Google Antig
 Modern agentic engineering workflows often rely on a single monolithic model for all phases of a task. While effective, this approach introduces two systemic inefficiencies:
 
 1. **Token Inefficiency**: High-reasoning models spend costly tokens ingesting verbose compiler outputs, generating boilerplate code, and re-reading large conversation histories.
-2. **Confirmation Bias**: An agent that generates code inherently struggles to audit its own work objectively, frequently missing regressions and edge cases.
+2. **Confirmation Bias**: An agent that generates code inherently struggles to audit its own work objectively, frequently missing regressions and subtle edge cases.
 
-**Gemini Advisor** solves these challenges by implementing a capability-routed architecture. It assigns architectural planning to **Gemini Pro**, delegates bounded code construction to **Gemini Flash**, and routes completed diffs to an isolated, read-only **Fresh Gemini Pro** auditor.
+**Gemini Advisor** solves these challenges by implementing a capability-routed architecture:
+- **Gemini Pro**: High-level intent, architectural decomposition, and contract drafting.
+- **Gemini Flash / Flash-Lite**: Fast, bounded code implementation at **10–20x lower token cost**.
+- **Fresh Gemini Pro (Read-Only)**: Zero-bias audit evaluating only the final diff and verification logs in an isolated context.
 
 ```mermaid
 flowchart TD
@@ -41,166 +44,170 @@ flowchart TD
 
 ---
 
-## Architecture: The Model Triad
+## Quick Start & Installation
 
-Gemini Advisor structures development across three distinct responsibilities:
+You can install Gemini Advisor globally for all your projects or locally within a specific repository.
 
-### 1. Architect / Lead Planner (`pro`)
-- Runs in the primary Antigravity session.
-- Conducts non-destructive codebase exploration.
-- Declares the upfront `SELECTIVE ROUTE` before executing any modifying tool.
-- Decomposes goals into modular milestones with strict file ownership boundaries.
-- Generates unambiguous 5-part implementation contracts.
-- Owns parent verification and user acceptance.
+### Option 1: Global Installation *(Recommended)*
 
-### 2. Builder / Implementer (`flash` or `flash_lite`)
-- Invoked as a subagent (`gemini_advisor_builder`) with write access.
-- Executes bounded coding, test writing, and mechanical refactors at a fraction of the cost.
-- Strictly adheres to declared file ownership boundaries; never modifies external files.
-- Executes local verification commands and returns an `IMPLEMENTATION REPORT`.
+Installs Gemini Advisor once so it is automatically active across all Antigravity workspaces:
 
-### 3. Auditor / Reviewer (Fresh `pro` in read-only mode)
-- Invoked as an independent subagent (`gemini_advisor_reviewer`) in a clean context.
-- Configured with `enable_write_tools: false` to enforce non-destructive evaluation.
-- Inspects the accumulated unified git diff and test logs against specification criteria.
-- Issues a definitive verdict: `SHIP`, `FIX-FIRST`, or `RETHINK`.
+```bash
+# 1. Clone the repository to your home directory
+git clone https://github.com/Norbert-Brett/gemini-advisor.git ~/.gemini-advisor
+
+# 2. Run the global installer
+bash ~/.gemini-advisor/scripts/install.sh --global
+
+# 3. Verify the installation
+bash ~/.gemini-advisor/scripts/install.sh --check
+```
+
+### Option 2: Project-Local Installation *(For Teams)*
+
+Installs Gemini Advisor directly inside a project's `.agents/` folder so it can be shared with team members:
+
+```bash
+# Navigate to your project root
+cd /path/to/your/project
+
+# Clone directly into the project's plugins directory
+mkdir -p .agents/plugins
+git clone https://github.com/Norbert-Brett/gemini-advisor.git .agents/plugins/gemini-advisor
+```
+
+Antigravity automatically discovers plugins in `.agents/plugins/` when opening the project.
 
 ---
 
-## Selective Routing Engine
+## How to Use: Step-by-Step
 
-Before executing any file modifications or destructive commands, the Architect issues a machine-auditable route declaration:
+Once installed, Gemini Advisor integrates seamlessly into the Antigravity IDE, Desktop App, and CLI (`agy`).
+
+### 1. Triggering Gemini Advisor
+
+Simply include the trigger phrase in your prompt:
 
 ```text
+Use gemini-advisor to build [feature description] and verify it. Declare the selective route before task tools.
+```
+
+#### Example Prompts:
+- **Feature Addition**:  
+  `"Use gemini-advisor to implement a rate-limiting middleware in Express and add integration tests. Declare the selective route before task tools."`
+- **Refactoring**:  
+  `"Use gemini-advisor to refactor the database query layer to use Prisma transactions. Declare the selective route before task tools."`
+- **Bug Fix**:  
+  `"Use gemini-advisor to investigate and resolve the race condition in the auth token refresh loop. Declare the selective route before task tools."`
+
+---
+
+### 2. What Happens Behind the Scenes
+
+When you run a prompt with Gemini Advisor, the agent executes a structured 4-phase lifecycle:
+
+#### Phase 1: Upfront Route Declaration
+Before modifying any files, the Architect evaluates the task's blast radius and emits a machine-auditable declaration in chat:
+```text
 SELECTIVE ROUTE
-mode: solo | delegate | audit | full
-risk: <concise, task-specific rationale>
+mode: full
+risk: Rate-limiting middleware affects all incoming API traffic; requires unit tests and independent review.
 allocation: Planner (Pro) -> Builder (Flash) -> Reviewer (Fresh Pro)
 ```
 
-### Routing Modes
+#### Phase 2: Delegated Code Construction (Flash)
+If the route is `delegate` or `full`, the Architect defines an unambiguous 5-part contract (Objective, Files & Ownership, Interfaces, Constraints, Verification) and invokes `gemini_advisor_builder` using **Gemini Flash**.
+- The Builder writes code, creates files, and runs initial unit tests.
+- Because Flash is used for implementation, high-volume code generation occurs at **~90% lower cost**.
+- The Builder returns an `IMPLEMENTATION REPORT` summarizing changes made and test outputs.
 
-| Mode | Workflow | Auxiliary Agents | When to Use |
-| :--- | :--- | :--- | :--- |
-| **`solo`** | Architect plans, implements, and self-verifies | 0 | Default for minor bug fixes, documentation, single-file edits, and low-risk tasks. |
-| **`delegate`** | Pro plans -> Flash builds -> Pro verifies | 1 (`gemini_advisor_builder`) | Well-specified features, boilerplate endpoints, migrations, and bounded refactors. |
-| **`audit`** | Pro plans & builds -> Fresh Pro audits | 1 (`gemini_advisor_reviewer`) | Security-sensitive logic, authentication flows, core abstractions, and schema updates. |
-| **`full`** | Pro plans -> Flash builds -> Pro verifies -> Fresh Pro audits | 2 (sequential) | Substantial multi-module features and high-blast-radius implementations. |
+#### Phase 3: Parent Verification
+The primary Architect (Gemini Pro) reviews the diff and independently reruns the verification suite (e.g., `npm test` or `pytest`) to confirm all tests pass cleanly.
 
-> **Escalation Policy**: `solo` is the default baseline to prevent coordination overhead on trivial tasks. A route may escalate to higher scrutiny if newly discovered complexity warrants it, but it may never silently downgrade.
+#### Phase 4: Independent Read-Only Review (Fresh Pro)
+If the route is `audit` or `full`, the Architect spawns `gemini_advisor_reviewer` using a **fresh context** of Gemini Pro with `enable_write_tools: false`.
+- The Reviewer receives **only** the objective, the git diff, and the test logs.
+- Because it has no historical conversation baggage and cannot edit files, it performs a strict, zero-bias audit.
+- The Reviewer issues a structured verdict:
+  - **`SHIP`**: Changes meet all standards. The task completes.
+  - **`FIX-FIRST`**: Concrete bugs or missing tests identified. The Architect feeds fixes back to the Builder and re-reviews.
+  - **`RETHINK`**: Architectural inconsistency. The Architect halts and redesigns the approach.
 
 ---
 
-## Structured Contracts
+## Selective Routing Modes
 
-### Implementation Contract
-When delegating work to the Builder, the Architect provides a structured contract:
+To prevent unnecessary orchestration overhead, Gemini Advisor defaults to `solo` for simple tasks and only scales up to auxiliaries when task risk demands it:
 
-```text
-OBJECTIVE:
-<Concrete, observable outcome and business rationale.>
+| Mode | Flow | Auxiliaries | When to Use |
+| :--- | :--- | :---: | :--- |
+| **`solo`** *(Default)* | Architect plans, builds, and self-verifies | 0 | Typos, documentation, isolated one-file bug fixes, and minor script tweaks. |
+| **`delegate`** | Pro plans -> Flash builds -> Pro verifies | 1 | Well-specified features, boilerplate endpoints, migrations, and bounded refactors. |
+| **`audit`** | Pro plans & builds -> Fresh Pro audits | 1 | High-risk code written directly by Pro (auth, cryptography, schema migrations). |
+| **`full`** | Pro plans -> Flash builds -> Pro tests -> Fresh Pro audits | 2 | Substantial multi-module features and critical production paths. |
 
-FILES AND OWNERSHIP:
-You own ONLY:
-- <file1>
-- <file2>
-Do NOT modify any files outside this list.
-
-INTERFACES:
-- <Public types, function signatures, endpoints, or CLI flags to maintain or introduce.>
-
-CONSTRAINTS:
-- <Coding conventions, dependency limits, error handling patterns, and settled decisions.>
-
-VERIFICATION:
-- Command: <exact test or build command>
-  Expected: <expected exit code or output signature>
-- Inspect: <target file or diff>
-  Expected: <observable behavior>
-
-RETURN:
-Structured IMPLEMENTATION REPORT covering STATUS, CHANGES, VERIFIED, JUDGMENT CALLS, and GAPS.
-```
-
-### Audit Protocol & Verdicts
-The Reviewer evaluates the unified diff and test logs against four pillars:
-1. **Contract Compliance**: Respect of file boundaries and interface parity.
-2. **Correctness & Logic**: Absence of off-by-one errors, unhandled nil/null checks, and concurrency bugs.
-3. **Security & Resource Safety**: Absence of command injections, data leaks, and memory leaks.
-4. **Verification Evidence**: Proof of passing test and build outputs.
-
-| Verdict | Definition | Next Step |
-| :--- | :--- | :--- |
-| **`SHIP`** | All criteria met without blocking findings. | Parent accepts changes and delivers to user. |
-| **`FIX-FIRST`** | Actionable defects or missing test coverage identified. | Parent delegates targeted fixes to Builder, then requests re-review. |
-| **`RETHINK`** | Fundamental architectural inconsistency. | Parent halts, reverts invalid changes, and redesigns the approach. |
+> **Escalation Guarantee**: A route may escalate to higher scrutiny if unexpected complexity is discovered during execution, but it will **never silently downgrade**.
 
 ---
 
 ## Token Economics & Verification Tooling
 
-By delegating verbose code generation to Flash and isolating the review to a fresh context, Gemini Advisor reduces token burn and operational costs:
+By delegating verbose code generation to Flash and isolating the review to a fresh context, Gemini Advisor dramatically reduces total spend:
 
-| Phase | Monolithic Approach (Pro) | Gemini Advisor Triad | Net Impact |
+| Phase | Monolithic Approach (All-Pro) | Gemini Advisor Triad | Net Impact |
 | :--- | :--- | :--- | :--- |
 | **Planning** | 4,000 Pro tokens | 4,000 Pro tokens | Neutral |
 | **Implementation** | 40,000 Pro tokens | 40,000 **Flash** tokens | ~90% Cost Reduction |
 | **Build & Test Output** | 30,000 Pro tokens | 30,000 **Flash** tokens | ~90% Cost Reduction |
-| **Audit** | 50,000 Pro tokens (accumulated context) | 5,000 **Fresh Pro** tokens (isolated diff) | ~90% Context Reduction |
+| **Independent Audit** | 50,000 Pro tokens (accumulated context) | 5,000 **Fresh Pro** tokens (isolated diff) | ~90% Context Reduction |
 | **Effective Total** | **124,000 Pro tokens** | **9,000 Pro + 70,000 Flash tokens** | **~75–85% Lower Cost** |
 
-### Integrated Token Counter
+### Integrated Token Counter CLI
 
-Gemini Advisor includes an integrated tokenizer and cost calculator (`scripts/token_counter.sh`):
+Gemini Advisor includes an integrated tokenizer and cost estimator (`scripts/token_counter.sh`) calibrated for Gemini's 256k vocabulary:
 
 ```bash
 # Run automated verification self-tests
-bash scripts/token_counter.sh --test
+bash ~/.gemini-advisor/scripts/token_counter.sh --test
 
 # Compare Monolithic vs Triad ROI on standard tasks
-bash scripts/token_counter.sh --compare
+bash ~/.gemini-advisor/scripts/token_counter.sh --compare
 
 # Measure token count of a file or directory
-bash scripts/token_counter.sh --file skills/gemini-advisor/SKILL.md
-bash scripts/token_counter.sh --dir skills/
+bash ~/.gemini-advisor/scripts/token_counter.sh --file path/to/file.ts
+bash ~/.gemini-advisor/scripts/token_counter.sh --dir src/
 
-# Count tokens in the active git diff
-bash scripts/token_counter.sh --diff
+# Count tokens in the active git diff before review
+bash ~/.gemini-advisor/scripts/token_counter.sh --diff
 
-# Measure tokens in an Antigravity transcript
-bash scripts/token_counter.sh --transcript path/to/transcript.jsonl
+# Measure tokens in an Antigravity conversation transcript
+bash ~/.gemini-advisor/scripts/token_counter.sh --transcript ~/.gemini/antigravity/transcript.jsonl
+
+# Measure tokens from piped text
+echo "const apiKey = process.env.API_KEY;" | bash ~/.gemini-advisor/scripts/token_counter.sh
 ```
 
 ---
 
-## Installation & Usage
+## Maintenance & Updating
 
-### 1. Installation
-Install globally across all Antigravity workspaces, or link within a single repository:
-
+### Updating to the Latest Release
 ```bash
-# Global installation (recommended)
-bash scripts/install.sh --global
-
-# Workspace-local installation
-bash scripts/install.sh --workspace
-
-# Check installation status
+cd ~/.gemini-advisor
+git pull origin main
 bash scripts/install.sh --check
 ```
 
-### 2. Running Verification
+### Running the Test Suite
 Ensure all manifests, reference documentation, shell scripts, and tokenizer tests pass:
-
 ```bash
-bash scripts/verify.sh
+bash ~/.gemini-advisor/scripts/verify.sh
 ```
 
-### 3. Usage in Antigravity
-Prompt the agent in the Antigravity IDE or CLI (`agy`):
-
-```text
-Use gemini-advisor to build [feature description] and verify it. Declare the selective route before task tools.
+### Uninstalling
+```bash
+rm -f ~/.gemini/config/plugins/gemini-advisor
+rm -rf ~/.gemini-advisor
 ```
 
 ---
