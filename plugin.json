@@ -1,0 +1,25 @@
+{
+  "name": "gemini-advisor",
+  "version": "0.1.0",
+  "description": "Multi-model selective routing for Antigravity: Pro plans, Flash builds, and fresh Pro gives unbiased reviews while burning fewer tokens.",
+  "author": {
+    "name": "Gemini Advisor Contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "antigravity",
+    "orchestration",
+    "multi-agent",
+    "subagents",
+    "gemini",
+    "selective-routing",
+    "token-optimization"
+  ],
+  "skills": "./skills/",
+  "rules": "./rules/",
+  "interface": {
+    "displayName": "Gemini Advisor",
+    "shortDescription": "Orchestrate Pro for planning, Flash for building, and fresh Pro for unbiased reviews.",
+    "longDescription": "Gemini Advisor is a capability-routed software delivery plugin for Antigravity. It uses Gemini Pro for intent, architecture, and contracts, delegates routine implementation to fast and economical Gemini Flash, and routes diffs to a fresh, unbiased read-only reviewer to maximize quality and minimize token burn."
+  }
+}

@@ -1,0 +1,13 @@
+# Logs and caches
+*.log
+.DS_Store
+*.bak*
+
+# Temporary test outputs
+tmp/
+scratch/
+
+# Node / Python
+node_modules/
+__pycache__/
+*.pyc
