@@ -6,6 +6,8 @@
     "name": "Gemini Advisor Contributors"
   },
   "license": "MIT",
+  "homepage": "https://github.com/Norbert-Brett/gemini-advisor#readme",
+  "repository": "https://github.com/Norbert-Brett/gemini-advisor",
   "keywords": [
     "antigravity",
     "orchestration",
