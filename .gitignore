@@ -6,6 +6,7 @@
 # Temporary test outputs
 tmp/
 scratch/
+.agents/
 
 # Node / Python
 node_modules/
