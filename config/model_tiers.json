@@ -1,0 +1,181 @@
+{
+  "schema_version": "2.0",
+  "allocation_policy": "dynamic_capability_tiering",
+  "tiers": {
+    "frontier": {
+      "role": "Architect / Planner & Independent Reviewer",
+      "description": "Most advanced high-reasoning model for architectural planning, contract drafting, and zero-bias diff auditing.",
+      "default_model": "gemini-4-argon",
+      "display_name": "Gemini 4 Argon",
+      "subagent_model_when_parent_is_frontier": "inherit",
+      "subagent_model_fallback": "pro",
+      "pricing_per_1m_usd": {
+        "input": 2.50,
+        "output": 10.00
+      }
+    },
+    "pro": {
+      "role": "High-Reasoning Fallback",
+      "description": "Secondary high-reasoning tier when frontier Argon/Apex is unavailable or when escalating from a Flash parent.",
+      "default_model": "gemini-3.5-pro",
+      "display_name": "Gemini Pro",
+      "subagent_model": "pro",
+      "pricing_per_1m_usd": {
+        "input": 1.25,
+        "output": 5.00
+      }
+    },
+    "builder": {
+      "role": "Builder / Routine Code Implementer",
+      "description": "Fast, economical model for bounded code execution, file modifications, and unit test runs.",
+      "default_model": "gemini-3.8-flash",
+      "display_name": "Gemini Flash",
+      "subagent_model": "flash",
+      "pricing_per_1m_usd": {
+        "input": 0.075,
+        "output": 0.30
+      }
+    },
+    "lite": {
+      "role": "Mechanical / Boilerplate Implementer",
+      "description": "Ultra-low-cost model for repetitive fixtures, schema conversions, and mechanical boilerplate.",
+      "default_model": "gemini-3.1-flash-lite",
+      "display_name": "Gemini Flash-Lite",
+      "subagent_model": "flash_lite",
+      "pricing_per_1m_usd": {
+        "input": 0.0375,
+        "output": 0.15
+      }
+    }
+  },
+  "heuristics": {
+    "frontier_keywords": [
+      "argon",
+      "xenon",
+      "krypton",
+      "radon",
+      "oganesson",
+      "neon",
+      "ultra",
+      "apex",
+      "frontier",
+      "titan",
+      "opus",
+      "deep-think",
+      "thinking",
+      "max"
+    ],
+    "pro_keywords": [
+      "pro",
+      "advanced"
+    ],
+    "builder_keywords": [
+      "flash"
+    ],
+    "lite_keywords": [
+      "flash-lite",
+      "flash_lite",
+      "lite",
+      "8b",
+      "nano",
+      "mini"
+    ],
+    "excluded_keywords": [
+      "embedding",
+      "imagen",
+      "veo",
+      "aqa",
+      "tts",
+      "audio",
+      "vision-only",
+      "image",
+      "placeholder"
+    ]
+  },
+  "known_models": [
+    {
+      "id": "gemini-4-argon",
+      "display_name": "Gemini 4 Argon",
+      "tier": "frontier",
+      "generation": 4.0,
+      "capability_score": 96.0,
+      "subagent_model": "inherit",
+      "pricing_per_1m_usd": {
+        "input": 2.50,
+        "output": 10.00
+      }
+    },
+    {
+      "id": "gemini-3.5-pro",
+      "display_name": "Gemini 3.5 Pro",
+      "tier": "pro",
+      "generation": 3.5,
+      "capability_score": 74.2,
+      "subagent_model": "pro",
+      "pricing_per_1m_usd": {
+        "input": 1.25,
+        "output": 5.00
+      }
+    },
+    {
+      "id": "gemini-2.5-pro",
+      "display_name": "Gemini 2.5 Pro",
+      "tier": "pro",
+      "generation": 2.5,
+      "capability_score": 73.0,
+      "subagent_model": "pro",
+      "pricing_per_1m_usd": {
+        "input": 1.25,
+        "output": 5.00
+      }
+    },
+    {
+      "id": "gemini-3.8-flash",
+      "display_name": "Gemini 3.8 Flash",
+      "tier": "builder",
+      "generation": 3.8,
+      "capability_score": 48.8,
+      "subagent_model": "flash",
+      "pricing_per_1m_usd": {
+        "input": 0.075,
+        "output": 0.30
+      }
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "display_name": "Gemini 2.5 Flash",
+      "tier": "builder",
+      "generation": 2.5,
+      "capability_score": 47.5,
+      "subagent_model": "flash",
+      "pricing_per_1m_usd": {
+        "input": 0.075,
+        "output": 0.30
+      }
+    },
+    {
+      "id": "gemini-3.1-flash-lite",
+      "display_name": "Gemini 3.1 Flash-Lite",
+      "tier": "lite",
+      "generation": 3.1,
+      "capability_score": 22.48,
+      "subagent_model": "flash_lite",
+      "pricing_per_1m_usd": {
+        "input": 0.0375,
+        "output": 0.15
+      }
+    },
+    {
+      "id": "gemini-2.5-flash-lite",
+      "display_name": "Gemini 2.5 Flash-Lite",
+      "tier": "lite",
+      "generation": 2.5,
+      "capability_score": 22.0,
+      "subagent_model": "flash_lite",
+      "pricing_per_1m_usd": {
+        "input": 0.0375,
+        "output": 0.15
+      }
+    }
+  ]
+}

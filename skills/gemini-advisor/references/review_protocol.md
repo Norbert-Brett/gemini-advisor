@@ -12,9 +12,9 @@ In traditional agent workflows, the agent that writes the code also checks the c
 
 **The Gemini Advisor Solution**:
 The Reviewer is launched as a brand-new subagent (`gemini_advisor_reviewer`) with:
-- **Clean context**: Only receives the objective, git diff, and test run logs.
+- **Clean context**: Only receives the objective, git diff, and test run logs without conversational baggage.
 - **`enable_write_tools: false`**: Physical enforcement that the reviewer cannot introduce untested edits or attempt quick-and-dirty patches.
-- **High-tier reasoning (`pro`)**: Applies deep analytical capabilities solely to critique and verification.
+- **Frontier-tier reasoning (`Gemini 4 Argon` via `inherit` or `pro` fallback)**: Applies state-of-the-art analytical capabilities solely to critique and verification in an isolated, read-only context. Using `Model: "inherit"` ensures that when the parent session runs on Gemini 4 Argon, the auditor audits with matching Frontier intelligence rather than downgrading to `pro`.
 
 ---
 

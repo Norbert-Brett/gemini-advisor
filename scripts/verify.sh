@@ -12,7 +12,7 @@ ERRORS=0
 
 # 1. Verify JSON manifests
 echo "1. Checking JSON manifests..."
-for json_file in "$REPO_ROOT/plugin.json" "$REPO_ROOT/plugins/gemini-advisor/plugin.json"; do
+for json_file in "$REPO_ROOT/plugin.json" "$REPO_ROOT/plugins/gemini-advisor/plugin.json" "$REPO_ROOT/config/model_tiers.json"; do
     if [ -f "$json_file" ]; then
         if python3 -m json.tool "$json_file" > /dev/null 2>&1; then
             echo "  ✓ Valid JSON: ${json_file#$REPO_ROOT/}"
@@ -70,6 +70,7 @@ SCRIPTS=(
     "scripts/install.sh"
     "scripts/verify.sh"
     "scripts/token_counter.sh"
+    "scripts/model_allocator.sh"
 )
 
 for scr in "${SCRIPTS[@]}"; do
@@ -86,8 +87,29 @@ for scr in "${SCRIPTS[@]}"; do
     fi
 done
 
-# 5. Run Token Counter Self-Tests
-echo "5. Running token counter verification tests..."
+# 5. Run Model Allocator Tests and Invariant Check
+echo "5. Running model allocator tests and verification checks..."
+if [ -f "$REPO_ROOT/scripts/model_allocator.py" ]; then
+    if python3 "$REPO_ROOT/scripts/model_allocator.py" --test; then
+        echo "  ✓ Model allocator self-tests passed"
+    else
+        echo "  ✗ Model allocator self-tests FAILED"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    if python3 "$REPO_ROOT/scripts/model_allocator.py" --check; then
+        echo "  ✓ Model allocator invariant check passed"
+    else
+        echo "  ✗ Model allocator invariant check FAILED"
+        ERRORS=$((ERRORS + 1))
+    fi
+else
+    echo "  ✗ Missing scripts/model_allocator.py"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# 6. Run Token Counter Self-Tests
+echo "6. Running token counter verification tests..."
 if [ -f "$REPO_ROOT/scripts/token_counter.py" ]; then
     if python3 "$REPO_ROOT/scripts/token_counter.py" --test; then
         echo "  ✓ Token counter self-tests passed"

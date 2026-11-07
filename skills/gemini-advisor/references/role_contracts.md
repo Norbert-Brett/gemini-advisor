@@ -1,17 +1,18 @@
 # Role Contracts & Prompts
 
-This document defines the exact role specifications, system prompts, and message contracts for the three models in the Gemini Advisor framework.
+This document defines the exact role specifications, system prompts, and message contracts for the models in the Gemini Advisor framework.
 
 ---
 
-## 1. Architect / Lead Planner (`pro`)
+## 1. Architect / Lead Planner (Frontier Tier — e.g. `Gemini 4 Argon`)
 
-The Architect runs in the primary Antigravity session (or a dedicated `pro` subagent).
+The Architect runs in the primary Antigravity session (operating on the apex Frontier model, such as **Gemini 4 Argon** or future Gemini 5+ releases).
 
 ### Responsibilities
 - Understand the user's requirements, domain, and acceptance criteria.
 - Conduct non-destructive codebase research.
-- Issue the upfront `SELECTIVE ROUTE` declaration.
+- Run dynamic pre-flight model checks (`scripts/model_allocator.sh --check`).
+- Issue the upfront `SELECTIVE ROUTE` declaration with dynamic model allocation.
 - Break down tasks into modular units with precise file ownership boundaries.
 - Generate unambiguous 5-part implementation contracts for the Builder.
 - Inspect the resulting git diff and execute verification tests independently before handing off to review.
@@ -19,9 +20,9 @@ The Architect runs in the primary Antigravity session (or a dedicated `pro` suba
 
 ---
 
-## 2. Builder / Implementer (`gemini_advisor_builder`)
+## 2. Builder / Implementer (`gemini_advisor_builder` — Execution Tier `flash` / `flash_lite`)
 
-The Builder runs as a subagent invoked with `Model: "flash"` or `Model: "flash_lite"`. It operates with write access enabled.
+The Builder runs as a subagent invoked with `Model: "flash"` or `Model: "flash_lite"`. It operates with write access enabled to deliver high-velocity execution at 10–30x lower token cost.
 
 ### Subagent Definition
 ```json
@@ -45,6 +46,7 @@ The Builder runs as a subagent invoked with `Model: "flash"` or `Model: "flash_l
   "Prompt": "<5-Part Implementation Contract>"
 }
 ```
+*(Use `Model: "flash_lite"` for mechanical generation such as mock fixtures, JSON schemas, or repetitive boilerplate).*
 
 ### Expected Return: Implementation Report
 ```text
@@ -64,9 +66,14 @@ GAPS:
 
 ---
 
-## 3. Reviewer / Auditor (`gemini_advisor_reviewer`)
+## 3. Reviewer / Auditor (`gemini_advisor_reviewer` — Fresh Frontier Tier via `Model: "inherit"` or `"pro"` fallback)
 
-The Reviewer runs as a subagent invoked with `Model: "pro"` in a **fresh context** with `enable_write_tools: false`. This guarantees zero confirmation bias and prevents unauthorized modifications.
+The Reviewer runs as a subagent invoked in a **fresh context** with `enable_write_tools: false`. This guarantees zero confirmation bias and prevents unauthorized modifications.
+
+### Subagent Model Inheritance Rule
+Antigravity's subagent invocation accepts `Model: ["inherit", "flash_lite", "flash", "pro"]`.
+- When the parent session runs on an apex Frontier model (such as **Gemini 4 Argon**), setting `Model: "inherit"` spawns the Reviewer in a fresh, isolated context on **Gemini 4 Argon**. This avoids downgrading to `pro` and audits code with state-of-the-art reasoning capability.
+- If the parent session runs on a lower tier (e.g. `flash`), the allocator falls back to `Model: "pro"` to ensure strict audit standards.
 
 ### Subagent Definition
 ```json
@@ -85,11 +92,12 @@ The Reviewer runs as a subagent invoked with `Model: "pro"` in a **fresh context
 {
   "TypeName": "gemini_advisor_reviewer",
   "Role": "Independent Code Auditor",
-  "Model": "pro",
+  "Model": "inherit",
   "Workspace": "inherit",
   "Prompt": "<Review Package: Objective + Diff + Test Results + Checklist>"
 }
 ```
+*(Fallback to `Model: "pro"` if the parent session is running on an Execution-tier model).*
 
 ### Expected Return: Audit Verdict
 ```text

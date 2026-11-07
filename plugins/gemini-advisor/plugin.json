@@ -1,7 +1,7 @@
 {
   "name": "gemini-advisor",
-  "version": "0.1.0",
-  "description": "Multi-model selective routing for Antigravity: Pro plans, Flash builds, and fresh Pro gives unbiased reviews while burning fewer tokens.",
+  "version": "0.2.0",
+  "description": "Dynamic frontier-to-execution routing for Antigravity: apex Frontier models (Gemini 4 Argon) plan and audit in read-only mode, while fast and economical models (Gemini Flash / Flash-Lite) execute code.",
   "author": {
     "name": "Gemini Advisor Contributors"
   },
@@ -14,6 +14,8 @@
     "multi-agent",
     "subagents",
     "gemini",
+    "argon",
+    "dynamic-model-allocation",
     "selective-routing",
     "token-optimization"
   ],
@@ -21,7 +23,7 @@
   "rules": "../../rules/",
   "interface": {
     "displayName": "Gemini Advisor",
-    "shortDescription": "Orchestrate Pro for planning, Flash for building, and fresh Pro for unbiased reviews.",
-    "longDescription": "Gemini Advisor is a capability-routed software delivery plugin for Antigravity. It uses Gemini Pro for intent, architecture, and contracts, delegates routine implementation to fast and economical Gemini Flash, and routes diffs to a fresh, unbiased read-only reviewer to maximize quality and minimize token burn."
+    "shortDescription": "Dynamic Frontier model allocation for planning and audit, Flash for execution.",
+    "longDescription": "Gemini Advisor is a capability-routed software delivery plugin for Antigravity. It dynamically checks and allocates the most advanced Frontier model (currently Gemini 4 Argon, and automatically any future apex model) for thinking, planning, and fresh read-only auditing, while delegating code execution to faster, cheaper models (Gemini Flash and Gemini Flash-Lite)."
   }
 }

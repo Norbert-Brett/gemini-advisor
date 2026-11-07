@@ -62,6 +62,9 @@ if [ "$CHECK_ONLY" = true ]; then
     if [ -d "$INSTALL_DIR" ] || [ -L "$INSTALL_DIR" ]; then
         if [ -f "$INSTALL_DIR/plugin.json" ] && [ -f "$INSTALL_DIR/skills/gemini-advisor/SKILL.md" ]; then
             echo "✓ Installation verified: Plugin is properly linked and valid at $INSTALL_DIR"
+            echo ""
+            echo "Checking active model allocation:"
+            bash "$REPO_ROOT/scripts/model_allocator.sh" --check
             exit 0
         else
             echo "✗ Warning: Directory exists at $INSTALL_DIR, but required files are missing."
@@ -82,6 +85,9 @@ if [ -L "$INSTALL_DIR" ]; then
     CURRENT_LINK="$(readlink "$INSTALL_DIR")"
     if [ "$CURRENT_LINK" = "$REPO_ROOT" ]; then
         echo "✓ Already installed: $INSTALL_DIR is already linked to $REPO_ROOT"
+        echo ""
+        echo "Checking active model allocation:"
+        bash "$REPO_ROOT/scripts/model_allocator.sh" --check
         exit 0
     else
         echo "Updating existing symlink from $CURRENT_LINK to $REPO_ROOT..."
@@ -103,6 +109,9 @@ if [ -f "$INSTALL_DIR/plugin.json" ] && [ -f "$INSTALL_DIR/skills/gemini-advisor
     echo "  $INSTALL_DIR"
     echo ""
     echo "Antigravity will now automatically discover the 'gemini-advisor' skill and rules."
+    echo ""
+    echo "Checking active model allocation:"
+    bash "$REPO_ROOT/scripts/model_allocator.sh" --check
 else
     echo "✗ Error: Installation failed to verify target files."
     exit 1

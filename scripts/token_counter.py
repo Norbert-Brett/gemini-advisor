@@ -24,15 +24,33 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # --- PRICING CONSTANTS (USD per 1M tokens) ---
-# Gemini 2.5/3.x Pro
+# Dynamically integrated with model_allocator and config/model_tiers.json with safe fallbacks.
+try:
+    from model_allocator import ModelAllocator, load_config as load_model_config
+    _ALLOCATOR_AVAILABLE = True
+except ImportError:
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from model_allocator import ModelAllocator, load_config as load_model_config
+        _ALLOCATOR_AVAILABLE = True
+    except Exception:
+        _ALLOCATOR_AVAILABLE = False
+
+# Frontier (Gemini 4 Argon / Apex / Xenon)
+FRONTIER_INPUT_PER_M = 2.50
+FRONTIER_OUTPUT_PER_M = 10.00
+ARGON_INPUT_PER_M = FRONTIER_INPUT_PER_M
+ARGON_OUTPUT_PER_M = FRONTIER_OUTPUT_PER_M
+
+# Gemini Pro (Secondary High-Reasoning / Fallback)
 PRO_INPUT_PER_M = 1.25
 PRO_OUTPUT_PER_M = 5.00
 
-# Gemini 2.5/3.x Flash
+# Gemini Flash (Builder Execution)
 FLASH_INPUT_PER_M = 0.075
 FLASH_OUTPUT_PER_M = 0.30
 
-# Gemini 2.5 Flash-Lite
+# Gemini Flash-Lite (Mechanical / Boilerplate)
 FLASH_LITE_INPUT_PER_M = 0.0375
 FLASH_LITE_OUTPUT_PER_M = 0.15
 
@@ -163,13 +181,22 @@ class GeminiLiveTokenCounter:
 
 
 def calculate_costs(input_tokens: int, output_tokens: int, model_type: str = "pro") -> float:
-    """Calculate cost in USD."""
-    if model_type == "flash":
-        return (input_tokens / 1_000_000 * FLASH_INPUT_PER_M) + (output_tokens / 1_000_000 * FLASH_OUTPUT_PER_M)
-    elif model_type == "flash_lite":
-        return (input_tokens / 1_000_000 * FLASH_LITE_INPUT_PER_M) + (output_tokens / 1_000_000 * FLASH_LITE_OUTPUT_PER_M)
+    """Calculate cost in USD based on model tier."""
+    m_type = (model_type or "pro").lower().strip()
+    if m_type in ("frontier", "argon", "gemini-4-argon"):
+        in_p = FRONTIER_INPUT_PER_M
+        out_p = FRONTIER_OUTPUT_PER_M
+    elif m_type in ("flash", "builder", "gemini-3.8-flash"):
+        in_p = FLASH_INPUT_PER_M
+        out_p = FLASH_OUTPUT_PER_M
+    elif m_type in ("flash_lite", "flash-lite", "lite", "gemini-3.1-flash-lite"):
+        in_p = FLASH_LITE_INPUT_PER_M
+        out_p = FLASH_LITE_OUTPUT_PER_M
     else:  # pro
-        return (input_tokens / 1_000_000 * PRO_INPUT_PER_M) + (output_tokens / 1_000_000 * PRO_OUTPUT_PER_M)
+        in_p = PRO_INPUT_PER_M
+        out_p = PRO_OUTPUT_PER_M
+
+    return (input_tokens / 1_000_000 * in_p) + (output_tokens / 1_000_000 * out_p)
 
 
 def count_file(path: Path, estimator: GeminiTokenEstimator) -> Tuple[int, int]:
@@ -297,61 +324,95 @@ def compare_triad_vs_monolithic(
     build_tokens: int = 45000,
     review_diff_tokens: int = 5000,
 ) -> Dict[str, Any]:
-    """Calculate comparative token consumption and cost between Monolithic Pro vs Gemini Advisor Triad."""
-    # Monolithic approach: Single Pro agent handles all steps with growing context window
+    """Calculate comparative token consumption and cost between Monolithic Frontier vs Gemini Advisor Triad."""
+    frontier_model_name = "Gemini 4 Argon"
+    builder_model_name = "Gemini Flash"
+    if _ALLOCATOR_AVAILABLE:
+        try:
+            alloc = ModelAllocator().resolve_allocation()
+            frontier_model_name = alloc["tiers"]["frontier"]["display_name"]
+            builder_model_name = alloc["tiers"]["builder"]["display_name"]
+        except Exception:
+            pass
+
+    # Monolithic approach: Single Frontier agent handles all steps with growing context window
     mono_input = plan_tokens + (build_tokens // 2) + build_tokens
     mono_output = (plan_tokens // 2) + (build_tokens // 2)
     mono_review_context = mono_input + mono_output + 15000  # Context accumulation penalty
     mono_total_input = mono_input + mono_review_context
     mono_total_output = mono_output + 2000
-    mono_cost = calculate_costs(mono_total_input, mono_total_output, "pro")
+    mono_frontier_cost = calculate_costs(mono_total_input, mono_total_output, "frontier")
+    mono_pro_cost = calculate_costs(mono_total_input, mono_total_output, "pro")
 
     # Gemini Advisor Triad approach:
-    # 1. Pro Planner (plan only)
-    triad_pro_plan_in = plan_tokens
-    triad_pro_plan_out = 1500
+    # 1. Frontier Planner (plan only)
+    triad_frontier_plan_in = plan_tokens
+    triad_frontier_plan_out = 1500
 
     # 2. Flash Builder (build only, isolated)
     triad_flash_build_in = build_tokens
     triad_flash_build_out = build_tokens // 2
 
-    # 3. Fresh Pro Reviewer (clean context, receives only diff & verification)
-    triad_pro_review_in = review_diff_tokens + 1000
-    triad_pro_review_out = 1000
+    # 3. Fresh Frontier Reviewer (clean context, receives only diff & verification)
+    triad_frontier_review_in = review_diff_tokens + 1000
+    triad_frontier_review_out = 1000
 
-    triad_pro_in = triad_pro_plan_in + triad_pro_review_in
-    triad_pro_out = triad_pro_plan_out + triad_pro_review_out
+    triad_frontier_in = triad_frontier_plan_in + triad_frontier_review_in
+    triad_frontier_out = triad_frontier_plan_out + triad_frontier_review_out
     triad_flash_in = triad_flash_build_in
     triad_flash_out = triad_flash_build_out
 
-    triad_pro_cost = calculate_costs(triad_pro_in, triad_pro_out, "pro")
+    triad_frontier_cost = calculate_costs(triad_frontier_in, triad_frontier_out, "frontier")
     triad_flash_cost = calculate_costs(triad_flash_in, triad_flash_out, "flash")
-    triad_total_cost = triad_pro_cost + triad_flash_cost
+    triad_total_cost = triad_frontier_cost + triad_flash_cost
 
-    savings_cost = mono_cost - triad_total_cost
-    savings_pct = (savings_cost / mono_cost * 100) if mono_cost > 0 else 0
+    savings_cost = mono_frontier_cost - triad_total_cost
+    savings_pct = (savings_cost / mono_frontier_cost * 100) if mono_frontier_cost > 0 else 0
+
+    triad_pro_cost = calculate_costs(triad_frontier_in, triad_frontier_out, "pro")
+    triad_pro_total = triad_pro_cost + triad_flash_cost
 
     return {
+        "frontier_model": frontier_model_name,
+        "builder_model": builder_model_name,
         "monolithic": {
-            "model": "Gemini Pro (Monolithic)",
+            "model": f"{frontier_model_name} (Monolithic All-Frontier)",
+            "tier": "frontier",
             "input_tokens": mono_total_input,
             "output_tokens": mono_total_output,
             "total_tokens": mono_total_input + mono_total_output,
-            "cost_usd": round(mono_cost, 4),
+            "cost_usd": round(mono_frontier_cost, 4),
+            "pro_equivalent_cost_usd": round(mono_pro_cost, 4),
         },
         "triad": {
-            "pro_tokens": triad_pro_in + triad_pro_out,
+            "frontier_model": frontier_model_name,
+            "builder_model": builder_model_name,
+            "frontier_tokens": triad_frontier_in + triad_frontier_out,
             "flash_tokens": triad_flash_in + triad_flash_out,
-            "total_tokens": (triad_pro_in + triad_pro_out) + (triad_flash_in + triad_flash_out),
-            "pro_cost_usd": round(triad_pro_cost, 4),
+            "total_tokens": (triad_frontier_in + triad_frontier_out) + (triad_flash_in + triad_flash_out),
+            "frontier_cost_usd": round(triad_frontier_cost, 4),
             "flash_cost_usd": round(triad_flash_cost, 4),
             "total_cost_usd": round(triad_total_cost, 4),
+            # Backward-compatible alias keys
+            "pro_tokens": triad_frontier_in + triad_frontier_out,
+            "pro_cost_usd": round(triad_frontier_cost, 4),
         },
         "savings": {
             "saved_usd": round(savings_cost, 4),
             "savings_percent": round(savings_pct, 1),
-            "pro_tokens_reduced_pct": round((1 - (triad_pro_in + triad_pro_out) / (mono_total_input + mono_total_output)) * 100, 1)
-        }
+            "frontier_tokens_reduced_pct": round(
+                (1 - (triad_frontier_in + triad_frontier_out) / (mono_total_input + mono_total_output)) * 100, 1
+            ),
+            "pro_tokens_reduced_pct": round(
+                (1 - (triad_frontier_in + triad_frontier_out) / (mono_total_input + mono_total_output)) * 100, 1
+            ),
+        },
+        "pro_reference": {
+            "monolithic_pro_cost_usd": round(mono_pro_cost, 4),
+            "triad_pro_total_cost_usd": round(triad_pro_total, 4),
+            "pro_savings_usd": round(mono_pro_cost - triad_pro_total, 4),
+            "pro_savings_pct": round(((mono_pro_cost - triad_pro_total) / mono_pro_cost * 100), 1) if mono_pro_cost > 0 else 0,
+        },
     }
 
 
@@ -407,6 +468,24 @@ def run_self_tests() -> bool:
     assert comp["triad"]["total_cost_usd"] < comp["monolithic"]["cost_usd"], "Triad must be cheaper"
     passed += 1
 
+    # Test 7: Frontier / Argon and Lite pricing calculation
+    total += 1
+    c_frontier = calculate_costs(1_000_000, 1_000_000, "frontier")
+    c_argon = calculate_costs(1_000_000, 1_000_000, "argon")
+    assert c_frontier == 12.50, f"Expected $12.50 for 1M in/out frontier, got {c_frontier}"
+    assert c_argon == 12.50, f"Expected $12.50 for 1M in/out argon, got {c_argon}"
+    c_lite = calculate_costs(1_000_000, 1_000_000, "flash_lite")
+    assert abs(c_lite - 0.1875) < 1e-5, f"Expected $0.1875 for flash_lite, got {c_lite}"
+    passed += 1
+
+    # Test 8: Dynamic Allocator Integration
+    total += 1
+    assert _ALLOCATOR_AVAILABLE is True, "model_allocator must be importable"
+    assert "frontier_model" in comp, "compare_triad_vs_monolithic must include frontier_model"
+    assert "builder_model" in comp, "compare_triad_vs_monolithic must include builder_model"
+    assert "pro_reference" in comp, "compare_triad_vs_monolithic must include pro_reference"
+    passed += 1
+
     print(f"✓ All {passed}/{total} self-tests passed successfully!\n")
     return True
 
@@ -449,19 +528,25 @@ def main():
             triad = comparison["triad"]
             savings = comparison["savings"]
 
-            print(f"Monolithic Delivery (All-Pro Single Agent):")
-            print(f"  • Total Tokens:      {mono['total_tokens']:,} (Input: {mono['input_tokens']:,}, Output: {mono['output_tokens']:,})")
-            print(f"  • Estimated Cost:    ${mono['cost_usd']:.4f} USD")
+            print(f"Monolithic Delivery (All-Frontier Single Agent - {mono['model']}):")
+            print(f"  • Total Tokens:       {mono['total_tokens']:,} (Input: {mono['input_tokens']:,}, Output: {mono['output_tokens']:,})")
+            print(f"  • Estimated Cost:     ${mono['cost_usd']:.4f} USD")
             print("")
-            print(f"Gemini Advisor Triad (Pro Plan + Flash Build + Fresh Pro Audit):")
-            print(f"  • Pro Tokens (High): {triad['pro_tokens']:,} tokens (${triad['pro_cost_usd']:.4f})")
-            print(f"  • Flash Tokens (Low):{triad['flash_tokens']:,} tokens (${triad['flash_cost_usd']:.4f})")
-            print(f"  • Total Tokens:      {triad['total_tokens']:,} tokens")
-            print(f"  • Total Cost:        ${triad['total_cost_usd']:.4f} USD")
+            print(f"Gemini Advisor Triad ({triad['frontier_model']} Plan + {triad['builder_model']} Build + Fresh {triad['frontier_model']} Audit):")
+            print(f"  • Frontier Tokens:    {triad['frontier_tokens']:,} tokens (${triad['frontier_cost_usd']:.4f})")
+            print(f"  • Flash Tokens:       {triad['flash_tokens']:,} tokens (${triad['flash_cost_usd']:.4f})")
+            print(f"  • Total Tokens:       {triad['total_tokens']:,} tokens")
+            print(f"  • Total Cost:         ${triad['total_cost_usd']:.4f} USD")
             print("--------------------------------------------------------------------------------")
-            print(f"NET SAVINGS:")
-            print(f"  • Financial Savings: ${savings['saved_usd']:.4f} USD ({savings['savings_percent']}% cheaper)")
-            print(f"  • Pro Tokens Burned: {savings['pro_tokens_reduced_pct']}% reduction in high-cost tokens")
+            print("NET SAVINGS (Triad vs Monolithic Frontier):")
+            print(f"  • Financial Savings:  ${savings['saved_usd']:.4f} USD ({savings['savings_percent']}% cheaper)")
+            print(f"  • Frontier Reduction: {savings['frontier_tokens_reduced_pct']}% reduction in high-cost frontier tokens")
+            print("--------------------------------------------------------------------------------")
+            pro_ref = comparison.get("pro_reference", {})
+            if pro_ref:
+                print("Secondary Pro Tier Reference:")
+                print(f"  • Monolithic Pro:     ${pro_ref['monolithic_pro_cost_usd']:.4f} USD")
+                print(f"  • Triad (Pro+Flash):  ${pro_ref['triad_pro_total_cost_usd']:.4f} USD ({pro_ref['pro_savings_pct']}% cheaper)")
             print("================================================================================")
         return
 
