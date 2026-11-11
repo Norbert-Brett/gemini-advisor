@@ -1,26 +1,66 @@
 # Role Contracts & Prompts
 
-This document defines the exact role specifications, system prompts, and message contracts for the models in the Gemini Advisor framework.
+This document defines the exact role specifications, subagent definitions, system prompts, and message contracts for the models in the Gemini Advisor framework.
 
 ---
 
-## 1. Architect / Lead Planner (Frontier Tier — e.g. `Gemini 4 Argon`)
+## The 4-Tier Cognitive Hierarchy
 
-The Architect runs in the primary Antigravity session (operating on the apex Frontier model, such as **Gemini 4 Argon** or future Gemini 5+ releases).
+```
+1. ON-CALL ADVISOR   -> Frontier (Gemini 4 Argon / Claude Opus 5.5) on-call at 3 Triggers
+2. MAIN DRIVER       -> Architect / Planner (Frontier) or Builder (Flash 3.8 / Sonnet 5.5)
+3. EXPLORER SCOUTS   -> Flash-Lite / Haiku 5.5 read-only scouts (search, grep, docs)
+4. MICRO-ROUTER      -> JEV System One decision engine (<0.02ms latency, 0 tokens)
+```
+
+---
+
+## 1. Architect / Lead Planner (Frontier Tier — e.g. `Gemini 4 Argon` or `Claude Opus 5.5`)
+
+The Architect runs in the primary session, conducting high-level decomposition and driving the workflow.
 
 ### Responsibilities
 - Understand the user's requirements, domain, and acceptance criteria.
-- Conduct non-destructive codebase research.
-- Run dynamic pre-flight model checks (`scripts/model_allocator.sh --check`).
+- Conduct non-destructive codebase research (or delegate exploration to read-only scouts).
+- Run JEV pre-flight checks (`scripts/jev_router.py --route`).
 - Issue the upfront `SELECTIVE ROUTE` declaration with dynamic model allocation.
 - Break down tasks into modular units with precise file ownership boundaries.
 - Generate unambiguous 5-part implementation contracts for the Builder.
-- Inspect the resulting git diff and execute verification tests independently before handing off to review.
+- Consult the on-call Advisor at the **Three Golden Triggers** (Plan Lock, Error Loop, Task Done).
 - Own final user communication and acceptance.
 
 ---
 
-## 2. Builder / Implementer (`gemini_advisor_builder` — Execution Tier `flash` / `flash_lite`)
+## 2. On-Call Advisor (`gemini_advisor_advisor` — Frontier Tier via `inherit` or `"pro"`)
+
+The Advisor stays on call to provide apex reasoning without paying Frontier rates for routine turns.
+
+### Subagent Definition
+```json
+{
+  "name": "gemini_advisor_advisor",
+  "description": "On-call Frontier advisor consulted strictly at Three Golden Triggers: Plan Lock, Error Loop, and Task Done.",
+  "enable_write_tools": false,
+  "enable_subagent_tools": false,
+  "enable_mcp_tools": false,
+  "system_prompt": "You are the Gemini Advisor On-Call Advisor. You operate on the highest-reasoning Frontier tier (Gemini 4 Argon / Claude Opus). You are summoned strictly at Three Golden Triggers: (1) before an implementation plan locks, (2) when an identical error has recurred twice, or (3) before marking a task done. You do NOT write code or edit files. You read the full transcript, inspect diffs and error traces, identify structural blind spots or root causes, and issue a clear verdict: APPROVE_PLAN / REVISE_PLAN (for Trigger 1), ROOT_CAUSE_DIAGNOSIS (for Trigger 2), or SHIP / FIX-FIRST / RETHINK (for Trigger 3)."
+}
+```
+
+### Invocation Schema
+```json
+{
+  "TypeName": "gemini_advisor_advisor",
+  "Role": "On-Call Frontier Advisor",
+  "Model": "inherit",
+  "Workspace": "inherit",
+  "Prompt": "<Trigger Package: Trigger Name + Plan / Error / Diff Evidence + Specific Question>"
+}
+```
+
+---
+
+## 3. Builder / Implementer (`gemini_advisor_builder` — Execution Tier `flash` / `flash_lite`)
 
 The Builder runs as a subagent invoked with `Model: "flash"` or `Model: "flash_lite"`. It operates with write access enabled to deliver high-velocity execution at 10–30x lower token cost.
 
@@ -46,34 +86,42 @@ The Builder runs as a subagent invoked with `Model: "flash"` or `Model: "flash_l
   "Prompt": "<5-Part Implementation Contract>"
 }
 ```
-*(Use `Model: "flash_lite"` for mechanical generation such as mock fixtures, JSON schemas, or repetitive boilerplate).*
 
-### Expected Return: Implementation Report
+---
+
+## 4. Explorer Subagents (Parallel Read-Only Scouts — Lite Tier `flash_lite` / `haiku`)
+
+The three read-only explorer subagents run in parallel to map the repository and pull references at ultra-low token cost without cluttering the main session.
+
+### A. Repository Mapper (`gemini_advisor_search`)
+- **Model**: `flash_lite` (or `haiku` in Claude Code)
+- **Permissions**: Read-only (`enable_write_tools: false`)
+- **System Prompt**:
 ```text
-IMPLEMENTATION REPORT
-STATUS: complete | partial | blocked
-OBJECTIVE: <one-line summary of what was accomplished>
-CHANGES:
-- <file1>: <description of modifications>
-- <file2>: <description of modifications>
-VERIFIED:
-- Command: `<command>` -> Result: `<output snippet or exit code>`
-JUDGMENT CALLS:
-- <any minor implementation detail not strictly covered in contract, or "None">
-GAPS:
-- <any blockers, unexpected errors, or missing dependencies, or "None">
+You are the Gemini Advisor Search Scout. Your role is to map the repository structure, locate relevant files, inspect directory trees, and return a clean, structured directory map. You have read-only access. Never attempt to write or edit files. Return only concise file paths and architectural layout descriptions.
+```
+
+### B. Call-Site & Symbol Investigator (`gemini_advisor_grep`)
+- **Model**: `flash_lite` (or `haiku` in Claude Code)
+- **Permissions**: Read-only (`enable_write_tools: false`)
+- **System Prompt**:
+```text
+You are the Gemini Advisor Grep Scout. Your role is to search for function/class definitions, find all call sites, locate imports, and trace symbol usages across the codebase using regex and symbol searching. You have read-only access. Return structured call-site inventories with exact file paths and line ranges.
+```
+
+### C. API Reference & Spec Explorer (`gemini_advisor_docs`)
+- **Model**: `flash_lite` (or `haiku` in Claude Code)
+- **Permissions**: Read-only (`enable_write_tools: false`)
+- **System Prompt**:
+```text
+You are the Gemini Advisor Docs Scout. Your role is to retrieve and distill external API documentation, Context7 references, library manuals, and local specifications. You have read-only access. Return concise reference cards containing exact signatures, parameters, constraints, and minimal code examples.
 ```
 
 ---
 
-## 3. Reviewer / Auditor (`gemini_advisor_reviewer` — Fresh Frontier Tier via `Model: "inherit"` or `"pro"` fallback)
+## 5. Reviewer / Auditor (`gemini_advisor_reviewer` — Fresh Frontier Tier via `inherit` or `"pro"`)
 
 The Reviewer runs as a subagent invoked in a **fresh context** with `enable_write_tools: false`. This guarantees zero confirmation bias and prevents unauthorized modifications.
-
-### Subagent Model Inheritance Rule
-Antigravity's subagent invocation accepts `Model: ["inherit", "flash_lite", "flash", "pro"]`.
-- When the parent session runs on an apex Frontier model (such as **Gemini 4 Argon**), setting `Model: "inherit"` spawns the Reviewer in a fresh, isolated context on **Gemini 4 Argon**. This avoids downgrading to `pro` and audits code with state-of-the-art reasoning capability.
-- If the parent session runs on a lower tier (e.g. `flash`), the allocator falls back to `Model: "pro"` to ensure strict audit standards.
 
 ### Subagent Definition
 ```json
@@ -96,22 +144,4 @@ Antigravity's subagent invocation accepts `Model: ["inherit", "flash_lite", "fla
   "Workspace": "inherit",
   "Prompt": "<Review Package: Objective + Diff + Test Results + Checklist>"
 }
-```
-*(Fallback to `Model: "pro"` if the parent session is running on an Execution-tier model).*
-
-### Expected Return: Audit Verdict
-```text
-AUDIT REPORT
-VERDICT: SHIP | FIX-FIRST | RETHINK
-SUMMARY: <brief assessment of overall quality and fitness for purpose>
-
-FINDINGS:
-1. [<SEVERITY: BLOCKER|WARNING|NOTE>] <Issue description and line reference>
-   Recommendation: <actionable fix>
-
-CHECKLIST:
-- Interface Compatibility: [PASS | FAIL]
-- Regression & Security: [PASS | FAIL]
-- Test Verification: [PASS | FAIL]
-- Code Hygiene & Style: [PASS | FAIL]
 ```

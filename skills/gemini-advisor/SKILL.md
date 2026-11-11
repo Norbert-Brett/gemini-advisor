@@ -1,91 +1,134 @@
 ---
 name: gemini-advisor
-description: "Dynamic frontier-to-execution routing for Antigravity: apex Frontier models (Gemini 4 Argon) plan and audit in read-only mode, while fast and economical models (Gemini Flash / Flash-Lite) execute code."
+description: "Capability-routed multi-agent architecture with JEV micro-routing: Frontier models (Gemini 4 Argon / Claude Opus) advise at Three Golden Triggers, Execution models (Flash 3.8 / Sonnet 5.5) build code, and Lite scouts (Flash-Lite / Haiku) explore in parallel."
 ---
 
-# Gemini Advisor Orchestration
+# Gemini Advisor Orchestration & JEV Engineering
 
-**Gemini Advisor** is a capability-routed software delivery workflow for Google Antigravity. It dynamically assigns each phase of development to the optimal model tier:
-- **Architect / Planner (Frontier Thinking Tier — e.g., Gemini 4 Argon)**: Owns high-level intent, architectural decomposition, contract drafting, escalation decisions, and final acceptance using the highest-reasoning model available.
-- **Builder / Implementer (Economical Execution Tier — Gemini Flash or Flash-Lite)**: Executes bounded, fully specified code implementation at 10–30x lower token cost with lightning speed.
-- **Reviewer / Auditor (Fresh Frontier Tier in read-only mode)**: Performs an unbiased audit of the accumulated git diff and test evidence using `Model: "inherit"` (preserving Frontier capability such as Gemini 4 Argon) or `"pro"` fallback, without builder confirmation bias or historical context bloat.
+**Gemini Advisor** is an advanced, capability-routed multi-agent delivery framework for Google Antigravity and Claude Code. Inspired by modern frontier-to-execution architectures, it organizes software development into a clean 4-tier cognitive hierarchy where every model does only what it is best at:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        THE 4-TIER COGNITIVE HIERARCHY                  │
+├─────────────────────┬───────────────────────────┬──────────────────────┤
+│ Role                │ Allocated Model Tier      │ Core Responsibility  │
+├─────────────────────┼───────────────────────────┼──────────────────────┤
+│ 1. On-Call Advisor  │ Frontier (Argon 4 / Opus) │ The 3 Golden Triggers│
+│ 2. Main Builder     │ Execution (Flash / Sonnet)│ Edits code & builds  │
+│ 3. Parallel Scouts  │ Lite (Flash-Lite / Haiku) │ Search, Grep, Docs   │
+│ 4. JEV Micro-Router │ System One Decision Engine│ Micro-forks in < 1ms │
+└─────────────────────┴───────────────────────────┴──────────────────────┘
+```
+
+- **Main Driver / Builder**: Runs the session and writes code with high speed and economical token cost (Gemini 3.8 Flash in Antigravity, Sonnet 5.5 in Claude Code).
+- **Parallel Explorers (Read-Only Scouts)**: Three lightweight subagents run concurrently at ultra-low cost (Gemini Flash-Lite / Haiku):
+  - `search`: Maps repository directories, finds file locations, and charts project layouts.
+  - `grep`: Locates symbol definitions, traces call sites, and finds regex patterns.
+  - `docs`: Pulls external/internal API references, Context7 documentation, and specifications.
+- **On-Call Frontier Advisor**: Apex reasoning model (Gemini 4 Argon / Claude Opus 5.5) stays on call for the critical decisions. It reads the full transcript/diff only when consulted, completely eliminating Frontier token burn on routine turns.
+- **JEV Micro-Router**: Evaluates deterministic micro-forks (tool choice, path selection, 2x error loop detection, and advisor triggers) in **sub-millisecond time (<0.02ms)** with zero token cost.
 
 ---
 
-## 1. Pre-Flight Dynamic Model Check & Auto-Allocation (`scripts/model_allocator.sh`)
+## 1. The Three Golden Advisor Triggers
 
-Before executing complex tasks or setting route allocations, Gemini Advisor verifies model tiers dynamically so no manual package updates are required when newer models are released:
+The Frontier Advisor steps in strictly at three pivotal moments:
+
+1. **Trigger 1: Plan Lock (`plan_lock`)**: Before any architectural plan or 5-part contract is approved and before code editing begins.
+2. **Trigger 2: Error Loop (`error_loop`)**: When JEV detects the **identical normalized error signature twice in succession**. The builder halts immediately, and the Advisor diagnoses root cause to break the hallucination loop.
+3. **Trigger 3: Task Done (`task_done`)**: Before marking a task complete or committing changes. The Advisor conducts an independent, zero-tolerance diff and evidence audit.
+
+See [references/advisor_triggers.md](references/advisor_triggers.md) for full trigger specifications.
+
+---
+
+## 2. JEV Deterministic Micro-Routing (`scripts/jev_router.sh`)
+
+Micro-forks that require no creative thinking are offloaded to JEV in milliseconds:
 
 ```bash
-# Check detected model tiers across Antigravity transcripts and environment
+# 1. Evaluate delivery route mode (solo, delegate, audit, full)
+bash scripts/jev_router.sh --route --task "Add search scout tests" --files scripts/jev_router.py
+
+# 2. Select optimal tool signature deterministically
+bash scripts/jev_router.sh --tool-choice --task "Find all call sites of resolve_allocation"
+
+# 3. Fast path ranking from project structure
+bash scripts/jev_router.sh --select-path --task "model allocator python tests"
+
+# 4. Error loop detection (trips Advisor Trigger 2 on 2nd repeat)
+bash scripts/jev_router.sh --check-error --error "AssertionError: expected 200 got 500 at line 42"
+
+# 5. Check advisor trigger status
+bash scripts/jev_router.sh --advisor-trigger --stage plan_lock
+
+# 6. Benchmark micro-routing latency (< 0.05 ms)
+bash scripts/jev_router.sh --benchmark
+```
+
+See [references/jev_engineering.md](references/jev_engineering.md) for architecture and benchmarks.
+
+---
+
+## 3. Dynamic Model Allocation (`scripts/model_allocator.sh`)
+
+Before executing tasks, Gemini Advisor discovers and verifies active model tiers dynamically:
+
+```bash
+# Verify model tiers and check allocation invariants
 bash scripts/model_allocator.sh --check
 
-# Output dynamic allocation recommendations for the active task
+# Emit dynamic SELECTIVE ROUTE allocation line
 bash scripts/model_allocator.sh --allocate
 ```
 
-The allocator automatically detects the highest-capability thinking model (currently **Gemini 4 Argon**, or any future Gemini 5+ frontier model) and pairs it with cheaper execution models (`flash` / `flash_lite`).
-
-### The Subagent Model Inheritance Rule
-Antigravity's `invoke_subagent` supports the `Model` enum: `["inherit", "flash_lite", "flash", "pro"]`.
-- When the Architect runs on a Frontier model above `pro` (such as **Gemini 4 Argon**), invoking `gemini_advisor_reviewer` with `Model: "inherit"` preserves **Gemini 4 Argon** in a fresh, isolated read-only context!
-- If the parent session is running on a lower tier (e.g. `flash`), the allocator falls back to `Model: "pro"` to ensure the auditor maintains high reasoning standards.
+### Subagent Model Inheritance Rule
+- When the parent session runs on a Frontier model (e.g. **Gemini 4 Argon**), invoking subagents with `Model: "inherit"` preserves the Frontier tier in a fresh, isolated context.
+- When the parent session runs on an Execution model (e.g. Flash), subagent escalation automatically falls back to `Model: "pro"` to ensure strict audit standards.
 
 ---
 
-## 2. The Selective Route Declaration
+## 4. Upfront Route Declaration
 
-Before making any modifying tool calls (`write_to_file`, `replace_file_content`, `write_file`, `edit_file`, destructive `run_command`), the Architect **MUST** evaluate the risk and emit the machine-auditable declaration:
+Before making any modifying tool calls (`write_file`, `edit_file`, destructive `run_command`), emit the machine-auditable declaration:
 
 ```text
 SELECTIVE ROUTE
 mode: solo | delegate | audit | full
 risk: <concise, task-specific rationale>
-allocation: Planner (Gemini 4 Argon [Frontier]) -> Builder (Gemini Flash [Execution]) -> Reviewer (Fresh Gemini 4 Argon [inherit])
+allocation: Planner (Gemini 4 Argon [Frontier]) -> Builder (Gemini 3.8 Flash [flash]) -> Reviewer (Fresh Gemini 4 Argon [inherit])
 ```
 
-### Route Modes
-
-| Mode | When to use | Execution Flow | Auxiliary Spawns |
+| Mode | When to use | Execution Flow | Scouts / Auxiliaries |
 | :--- | :--- | :--- | :--- |
-| **`solo`** | Default for trivial tweaks, documentation, single-file edits, or tightly scoped fixes with zero architectural risk. | Architect (Frontier) plans, implements, tests, and self-reviews. | None (0 auxiliary) |
-| **`delegate`** | Bounded, well-specified features, refactors, or boilerplate where implementation is purely mechanical. | Architect (Frontier) plans -> Builder (`flash` / `flash_lite`) implements -> Architect verifies. | 1 implementer (`gemini_advisor_builder`) |
-| **`audit`** | Sensitive changes (security, schema migrations, public API contracts) written directly by the Architect that require independent verification. | Architect (Frontier) plans & implements -> Reviewer (Fresh Frontier via `inherit` or `pro`) audits diff & test results. | 1 reviewer (`gemini_advisor_reviewer`) |
-| **`full`** | Substantial, multi-file features or high-risk components where both low-cost implementation and rigorous unbiased scrutiny are critical. | Architect (Frontier) plans -> Builder (`flash`) implements -> Architect tests -> Reviewer (Fresh Frontier) audits. | 2 auxiliaries sequentially (Builder, then Reviewer) |
-
-> [!IMPORTANT]
-> - `solo` is the baseline default to conserve tokens whenever risk is low.
-> - A route can only **escalate** (e.g. `solo` -> `audit` or `delegate` -> `full`) if newly discovered risk justifies it. It must **never** silently downgrade.
+| **`solo`** | Default for trivial tweaks, documentation, single-file edits (<3 files). | Main driver plans, executes, and self-checks. | None (0 auxiliary) |
+| **`delegate`** | Bounded features, boilerplate, or unit test suites. | Main driver plans -> Builder (`flash`) implements -> Driver tests. | 1 builder (`gemini_advisor_builder`) |
+| **`audit`** | Sensitive changes (auth, security, schemas, public APIs). | Main driver plans & writes -> Reviewer (`inherit` / `pro`) audits. | 1 reviewer (`gemini_advisor_reviewer`) |
+| **`full`** | Multi-file features or high-impact architectural components. | Main driver plans -> Builder (`flash`) implements -> Reviewer audits. | Builder + Reviewer + Scouts |
 
 ---
 
-## 3. Dynamic Subagent Configuration
+## 5. Parallel Explorer Scouts
 
-Antigravity allows dynamic definition and invocation of subagents. When executing `delegate`, `audit`, or `full`, ensure the target subagents are defined and invoked as follows:
+When exploratory mapping is needed, dispatch lightweight read-only scouts in parallel:
 
-### A. Defining the Builder Subagent (`gemini_advisor_builder`)
-Use `define_subagent` if not already registered:
-- **`name`**: `"gemini_advisor_builder"`
-- **`description`**: `"Fast, token-efficient implementation agent for bounded specifications."`
-- **`enable_write_tools`**: `true`
-- **`enable_subagent_tools`**: `false`
-- **`enable_mcp_tools`**: `false`
-- **`system_prompt`**: See [references/role_contracts.md](references/role_contracts.md#2-builder--implementer-gemini_advisor_builder)
+### A. Repository Structure Mapper (`gemini_advisor_search`)
+- **Model**: `flash_lite` (Antigravity) / `haiku` (Claude Code)
+- **Role**: Maps directory structures, charts file trees, and returns layout summaries.
 
-### B. Defining the Reviewer Subagent (`gemini_advisor_reviewer`)
-Use `define_subagent` if not already registered:
-- **`name`**: `"gemini_advisor_reviewer"`
-- **`description`**: `"Fresh, unbiased read-only reviewer for git diffs and test evidence."`
-- **`enable_write_tools`**: `false` *(Strictly read-only; no code mutations allowed)*
-- **`enable_subagent_tools`**: `false`
-- **`enable_mcp_tools`**: `false`
-- **`system_prompt`**: See [references/role_contracts.md](references/role_contracts.md#3-reviewer--auditor-gemini_advisor_reviewer)
+### B. Call-Site & Symbol Investigator (`gemini_advisor_grep`)
+- **Model**: `flash_lite` (Antigravity) / `haiku` (Claude Code)
+- **Role**: Locates symbol definitions, call sites, regex patterns, and imports.
+
+### C. API Reference Explorer (`gemini_advisor_docs`)
+- **Model**: `flash_lite` (Antigravity) / `haiku` (Claude Code)
+- **Role**: Retrieves API signatures, Context7 library documentation, and specifications.
 
 ---
 
-## 4. The 5-Part Implementation Contract
+## 6. The 5-Part Implementation Contract
 
-When delegating to the Builder (`gemini_advisor_builder`), the Architect writes a prompt containing all five required sections:
+When delegating to the Builder (`gemini_advisor_builder`), provide all five required sections:
 
 ```text
 OBJECTIVE:
@@ -121,28 +164,31 @@ GAPS: <any unfinished work or blocking issues, or "none">
 
 ---
 
-## 5. Unbiased Review Protocol
+## 7. Cross-Platform Execution: Claude Code & Antigravity
 
-In `audit` or `full` modes, once implementation is completed and verified by the parent session:
+Gemini Advisor is fully compatible across agent environments:
 
-1. **Capture Evidence**: Run `git diff` or use `scripts/diff_summary.sh` to extract the exact changed lines and run the verification suite.
-2. **Spawn Reviewer**: Invoke `gemini_advisor_reviewer` using `Model: "inherit"` (preserving Frontier tier e.g., Gemini 4 Argon) or `Model: "pro"` fallback with a **fresh context** (passing only the diff, verification evidence, and acceptance criteria).
-3. **Reviewer Evaluation**: The reviewer returns one of three verdicts:
-   - `VERDICT: SHIP` -> Ready to accept. Parent completes the task.
-   - `VERDICT: FIX-FIRST` -> Actionable bugs, regressions, or missing tests. Parent either delegates fixes back to Builder or fixes directly, then reruns review.
-   - `VERDICT: RETHINK` -> Fundamental architectural flaw. Parent revises the plan.
+### Google Antigravity
+- Main session: Frontier (`Gemini 4 Argon`) or Builder (`Gemini 3.8 Flash`)
+- Scouts: `gemini_advisor_search`, `gemini_advisor_grep`, `gemini_advisor_docs` (`flash_lite`)
+- Advisor: `gemini_advisor_advisor` (`inherit` / `pro`)
+
+### Claude Code
+Launch Claude Code using the advisor flag:
+```bash
+claude --model sonnet --advisor opus
+```
+- Driver: Sonnet 5.5
+- Advisor: Opus 5.5 (summoned at the 3 Golden Triggers)
+- Scouts: Haiku 5.5 subagents (`search`, `grep`, `docs`)
+- Rules: Defined in `rules/CLAUDE.md`
 
 ---
 
-## 6. Token Economy Guidelines
-
-To achieve maximum token savings:
-1. **Leverage Frontier -> Execution Separation**: Let Frontier models (Gemini 4 Argon) reason and contract; let Execution models (Gemini Flash / Flash-Lite) write code and execute tests at 10–30x lower token cost.
-2. **Never copy full files into prompts**: Use targeted snippets or point to file paths.
-3. **Send clean diffs to Reviewer**: Do not forward intermediate scratchpads, hallucinated loops, or builder conversation history.
-4. **Choose `flash_lite` for boilerplate**: When generating repetitive structures, tests, or config files, set `Model: "flash_lite"`.
-5. **Refer to Reference Guides**:
-   - [references/role_contracts.md](references/role_contracts.md) - Full prompt templates, schemas, and inheritance rules.
-   - [references/routing_matrix.md](references/routing_matrix.md) - Decision guidelines for risk-gating.
-   - [references/review_protocol.md](references/review_protocol.md) - Audit rubrics and inspection checklists.
-   - [references/token_optimization.md](references/token_optimization.md) - Token benchmarking, model allocation CLI, and context optimization.
+## 8. Reference Documentation
+- [references/advisor_triggers.md](references/advisor_triggers.md) - The Three Golden Advisor Triggers (Plan Lock, Error Loop, Task Done).
+- [references/jev_engineering.md](references/jev_engineering.md) - JEV System One micro-routing, schemas, and latency benchmarks.
+- [references/role_contracts.md](references/role_contracts.md) - Role prompts, subagent definitions, and schemas.
+- [references/routing_matrix.md](references/routing_matrix.md) - Risk matrix, blast-radius formulas, and escalation rules.
+- [references/review_protocol.md](references/review_protocol.md) - Independent audit rubrics, checklists, and verdicts.
+- [references/token_optimization.md](references/token_optimization.md) - Token accounting and cost comparison models.

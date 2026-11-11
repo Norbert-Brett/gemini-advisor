@@ -1,10 +1,10 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "allocation_policy": "dynamic_capability_tiering",
   "tiers": {
     "frontier": {
-      "role": "Architect / Planner & Independent Reviewer",
-      "description": "Most advanced high-reasoning model for architectural planning, contract drafting, and zero-bias diff auditing.",
+      "role": "Architect / Planner & On-Call Advisor",
+      "description": "Most advanced high-reasoning model for architectural planning, 5-part contract drafting, on-call trigger consultation, and zero-bias diff auditing.",
       "default_model": "gemini-4-argon",
       "display_name": "Gemini 4 Argon",
       "subagent_model_when_parent_is_frontier": "inherit",
@@ -37,8 +37,8 @@
       }
     },
     "lite": {
-      "role": "Mechanical / Boilerplate Implementer",
-      "description": "Ultra-low-cost model for repetitive fixtures, schema conversions, and mechanical boilerplate.",
+      "role": "Exploratory Scout & Boilerplate Implementer",
+      "description": "Ultra-low-cost model for parallel repository scouts (search, grep, docs) and mechanical boilerplate.",
       "default_model": "gemini-3.1-flash-lite",
       "display_name": "Gemini Flash-Lite",
       "subagent_model": "flash_lite",
@@ -46,6 +46,92 @@
         "input": 0.0375,
         "output": 0.15
       }
+    }
+  },
+  "subagents": {
+    "gemini_advisor_builder": {
+      "role": "Builder / Implementer",
+      "description": "Fast, token-efficient implementation agent for bounded 5-part specifications.",
+      "tier": "builder",
+      "model": "flash",
+      "read_only": false
+    },
+    "gemini_advisor_reviewer": {
+      "role": "Independent Code Auditor",
+      "description": "Unbiased read-only code reviewer evaluating git diffs and test evidence.",
+      "tier": "frontier",
+      "model": "inherit",
+      "read_only": true
+    },
+    "gemini_advisor_advisor": {
+      "role": "On-Call Frontier Advisor",
+      "description": "Consulted strictly at Three Golden Triggers: Plan Lock, Error Loop (2x), and Task Done.",
+      "tier": "frontier",
+      "model": "inherit",
+      "read_only": true
+    },
+    "gemini_advisor_search": {
+      "role": "Repository Structure & Layout Mapper",
+      "description": "Parallel read-only scout mapping repo directory trees, module hierarchies, and file locations.",
+      "tier": "lite",
+      "model": "flash_lite",
+      "read_only": true
+    },
+    "gemini_advisor_grep": {
+      "role": "Call-Site & Symbol Investigator",
+      "description": "Parallel read-only scout locating symbol definitions, call sites, and regex matches across files.",
+      "tier": "lite",
+      "model": "flash_lite",
+      "read_only": true
+    },
+    "gemini_advisor_docs": {
+      "role": "API Reference & Spec Retriever",
+      "description": "Parallel read-only scout pulling API reference manuals, Context7 documentation, and external specs.",
+      "tier": "lite",
+      "model": "flash_lite",
+      "read_only": true
+    }
+  },
+  "jev_micro_router": {
+    "engine": "scripts/jev_router.py",
+    "latency_target_ms": 2.0,
+    "error_recurrence_limit": 2,
+    "decision_types": [
+      "route_mode",
+      "tool_choice",
+      "path_selection",
+      "error_loop_detection",
+      "advisor_trigger_gate",
+      "explorer_subagent_dispatch"
+    ],
+    "advisor_triggers": [
+      {
+        "name": "plan_lock",
+        "description": "Trigger 1: Consult Frontier Advisor before locking implementation plan or 5-part contract."
+      },
+      {
+        "name": "error_loop",
+        "description": "Trigger 2: Consult Frontier Advisor when identical error signature appears twice in a row."
+      },
+      {
+        "name": "task_done",
+        "description": "Trigger 3: Consult Frontier Advisor before declaring task complete or shipping changes."
+      }
+    ]
+  },
+  "cross_platform_mappings": {
+    "claude_code": {
+      "driver_model": "claude-3-7-sonnet-20250219",
+      "advisor_model": "claude-3-opus-20240229",
+      "explorer_model": "claude-3-5-haiku-20241022",
+      "cli_command": "claude --model sonnet --advisor opus",
+      "rule_file": "rules/CLAUDE.md"
+    },
+    "google_antigravity": {
+      "frontier_advisor_model": "gemini-4-argon",
+      "builder_model": "gemini-3.8-flash",
+      "explorer_model": "gemini-3.1-flash-lite",
+      "rule_file": "rules/AGENTS.md"
     }
   },
   "heuristics": {
@@ -70,7 +156,8 @@
       "advanced"
     ],
     "builder_keywords": [
-      "flash"
+      "flash",
+      "sonnet"
     ],
     "lite_keywords": [
       "flash-lite",
@@ -78,7 +165,8 @@
       "lite",
       "8b",
       "nano",
-      "mini"
+      "mini",
+      "haiku"
     ],
     "excluded_keywords": [
       "embedding",

@@ -1,6 +1,6 @@
 # Selective Routing Matrix
 
-The Selective Routing Matrix dictates which delivery mode the Architect declares before starting task execution. Choosing the correct mode is the primary mechanism for burning fewer tokens while maintaining rigorous engineering standards by dynamically balancing Frontier Thinking (`Gemini 4 Argon` / auto-detected apex model) and Economical Execution (`Gemini Flash` / `Flash-Lite`).
+The Selective Routing Matrix dictates which delivery mode the Architect declares before starting task execution. Choosing the correct mode is the primary mechanism for burning fewer tokens while maintaining rigorous engineering standards by dynamically balancing Frontier Thinking (`Gemini 4 Argon` / auto-detected apex model) and Economical Execution (`Gemini Flash` / `Flash-Lite`), coordinated by the sub-millisecond JEV micro-routing engine.
 
 ---
 
@@ -40,7 +40,35 @@ When analyzing a user request, evaluate these 4 risk dimensions:
 
 ---
 
-## 3. Escalation Protocol
+## 3. Fast Deterministic JEV Micro-Routing
+
+Instead of making slow, manual routing estimations, invoke the JEV micro-routing engine:
+
+```bash
+# Calculate exact route mode, risk score, and allocation in < 0.05 ms
+python3 scripts/jev_router.py --route --task "<user task description>" --files file1.py file2.py
+```
+
+JEV computes:
+- Structural risk score (0.00 to 1.00).
+- Recommended delivery mode (`solo`, `delegate`, `audit`, or `full`).
+- Dynamic allocation string with exact model names.
+
+---
+
+## 4. The Three Golden Advisor Triggers
+
+Regardless of the selected route mode, the Frontier Advisor is summoned strictly at:
+
+1. **Trigger 1: Plan Lock (`plan_lock`)**: Before any plan or 5-part contract is approved.
+2. **Trigger 2: Error Loop (`error_loop`)**: When the same error signature recurs twice.
+3. **Trigger 3: Task Done (`task_done`)**: Before marking any task complete or committing.
+
+See [references/advisor_triggers.md](advisor_triggers.md) for full protocol details.
+
+---
+
+## 5. Escalation Protocol
 
 The Architect may escalate the route if new evidence reveals unexpected complexity during execution:
 

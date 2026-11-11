@@ -1,7 +1,7 @@
 {
   "name": "gemini-advisor",
-  "version": "0.2.0",
-  "description": "Dynamic frontier-to-execution routing for Antigravity: apex Frontier models (Gemini 4 Argon) plan and audit in read-only mode, while fast and economical models (Gemini Flash / Flash-Lite) execute code.",
+  "version": "0.3.0",
+  "description": "Multi-tier capability routing with JEV micro-routing: Frontier models (Gemini 4 Argon / Claude Opus) advise at Three Golden Triggers, Execution models (Flash 3.8 / Sonnet 5.5) build code, and Lite scouts (Flash-Lite / Haiku) explore in parallel.",
   "author": {
     "name": "Gemini Advisor Contributors"
   },
@@ -10,11 +10,16 @@
   "repository": "https://github.com/Norbert-Brett/gemini-advisor",
   "keywords": [
     "antigravity",
+    "claude-code",
     "orchestration",
     "multi-agent",
     "subagents",
     "gemini",
     "argon",
+    "opus",
+    "jev",
+    "micro-routing",
+    "advisor-triggers",
     "dynamic-model-allocation",
     "selective-routing",
     "token-optimization"
@@ -23,7 +28,7 @@
   "rules": "./rules/",
   "interface": {
     "displayName": "Gemini Advisor",
-    "shortDescription": "Dynamic Frontier model allocation for planning and audit, Flash for execution.",
-    "longDescription": "Gemini Advisor is a capability-routed software delivery plugin for Antigravity. It dynamically checks and allocates the most advanced Frontier model (currently Gemini 4 Argon, and automatically any future apex model) for thinking, planning, and fresh read-only auditing, while delegating code execution to faster, cheaper models (Gemini Flash and Gemini Flash-Lite)."
+    "shortDescription": "4-Tier multi-agent hierarchy with JEV micro-routing, on-call Advisor, and parallel scouts.",
+    "longDescription": "Gemini Advisor is a capability-routed software delivery plugin for Antigravity and Claude Code. It organizes engineering into a 4-tier cognitive tree: On-Call Frontier Advisor (Gemini 4 Argon / Claude Opus) stepping in strictly at Three Golden Triggers (Plan Lock, Error Loop 2x, Task Done), fast Execution Builders (Gemini Flash / Sonnet), parallel read-only Scouts (search, grep, docs on Flash-Lite / Haiku), and sub-millisecond JEV micro-routing (<0.02ms) for fast deterministic forks."
   }
 }

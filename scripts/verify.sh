@@ -48,8 +48,11 @@ REQUIRED_REFS=(
     "skills/gemini-advisor/references/routing_matrix.md"
     "skills/gemini-advisor/references/review_protocol.md"
     "skills/gemini-advisor/references/token_optimization.md"
+    "skills/gemini-advisor/references/advisor_triggers.md"
+    "skills/gemini-advisor/references/jev_engineering.md"
     "rules/AGENTS.md"
     "rules/GEMINI.md"
+    "rules/CLAUDE.md"
     "README.md"
     "LICENSE"
 )
@@ -71,6 +74,7 @@ SCRIPTS=(
     "scripts/verify.sh"
     "scripts/token_counter.sh"
     "scripts/model_allocator.sh"
+    "scripts/jev_router.sh"
 )
 
 for scr in "${SCRIPTS[@]}"; do
@@ -108,8 +112,29 @@ else
     ERRORS=$((ERRORS + 1))
 fi
 
-# 6. Run Token Counter Self-Tests
-echo "6. Running token counter verification tests..."
+# 6. Run JEV Deterministic Micro-Router Tests and Benchmark
+echo "6. Running JEV micro-router tests and latency benchmark..."
+if [ -f "$REPO_ROOT/scripts/jev_router.py" ]; then
+    if python3 "$REPO_ROOT/scripts/jev_router.py" --test; then
+        echo "  ✓ JEV micro-router self-tests passed"
+    else
+        echo "  ✗ JEV micro-router self-tests FAILED"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    if python3 "$REPO_ROOT/scripts/jev_router.py" --benchmark; then
+        echo "  ✓ JEV micro-router latency benchmark passed"
+    else
+        echo "  ✗ JEV micro-router latency benchmark FAILED"
+        ERRORS=$((ERRORS + 1))
+    fi
+else
+    echo "  ✗ Missing scripts/jev_router.py"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# 7. Run Token Counter Self-Tests
+echo "7. Running token counter verification tests..."
 if [ -f "$REPO_ROOT/scripts/token_counter.py" ]; then
     if python3 "$REPO_ROOT/scripts/token_counter.py" --test; then
         echo "  ✓ Token counter self-tests passed"

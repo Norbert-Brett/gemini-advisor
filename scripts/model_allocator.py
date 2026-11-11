@@ -575,8 +575,12 @@ class ModelAllocator:
             },
             "subagent_parameters": {
                 "reviewer": reviewer_subagent,
+                "advisor": reviewer_subagent,
                 "builder": builder_subagent,
                 "lite": lite_subagent,
+                "search": "flash_lite",
+                "grep": "flash_lite",
+                "docs": "flash_lite",
             },
             "route_allocation": route_line,
             "discovered_models": discovered,
@@ -768,7 +772,17 @@ def run_tests() -> bool:
     json_str = json.dumps(default_alloc)
     assert len(json_str) > 100
     passed += 1
-    print("✓ Test 8 Passed: End-to-end JSON output schema and pricing fields validated.\n")
+    print("✓ Test 8 Passed: End-to-end JSON output schema and pricing fields validated.")
+
+    # Test 9: Explorer subagents and on-call advisor mappings
+    total += 1
+    subparams = default_alloc["subagent_parameters"]
+    assert "search" in subparams and subparams["search"] == "flash_lite"
+    assert "grep" in subparams and subparams["grep"] == "flash_lite"
+    assert "docs" in subparams and subparams["docs"] == "flash_lite"
+    assert "advisor" in subparams and subparams["advisor"] in ("inherit", "pro")
+    passed += 1
+    print("✓ Test 9 Passed: Explorer scouts (search, grep, docs) and on-call advisor mappings validated.\n")
 
     print(f"==> ALL {passed}/{total} SELF-TESTS PASSED SUCCESSFULLY!\n")
     return True
